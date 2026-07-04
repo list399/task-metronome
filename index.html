@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Task Metronome</title>
+<style>
+  :root{
+    --bg:#12141a; --card:#1c1f28; --ink:#e8eaf0; --dim:#8a90a3;
+    --accent:#5eead4; --accent2:#f4b860; --line:#2c3040;
+  }
+  *{box-sizing:border-box; margin:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:28px; width:100%; max-width:440px}
+  h1{font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim);
+    text-align:center; margin-bottom:20px}
+  label{display:block; font-size:12px; color:var(--dim); margin:14px 0 4px; letter-spacing:.05em}
+  input[type=text], input[type=number], select{
+    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px;
+    color:var(--ink); font-size:18px; padding:10px 12px; font-variant-numeric:tabular-nums}
+  select{font-size:15px; appearance:none}
+  input:focus, select:focus{outline:none; border-color:var(--accent)}
+  .modes{display:flex; gap:8px; margin-top:4px}
+  .modes button{flex:1; background:var(--bg); border:1px solid var(--line); color:var(--dim);
+    border-radius:8px; padding:9px; font-size:13px; cursor:pointer}
+  .modes button.on{border-color:var(--accent); color:var(--accent)}
+  input[type=range]{width:100%; accent-color:var(--accent); margin-top:6px}
+  .preview{font-size:12px; color:var(--dim); margin-top:14px; line-height:1.6; min-height:32px}
+  .preview b{color:var(--accent); font-weight:600}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px}
+  .chip{display:inline-flex; align-items:center; gap:8px; background:var(--bg);
+    border:1px solid var(--accent); color:var(--accent); border-radius:999px;
+    padding:7px 8px 7px 14px; font-size:13px; font-weight:600; cursor:pointer}
+  .chip:hover{background:#17332e}
+  .chip .x{color:var(--dim); font-weight:400; font-size:15px; line-height:1;
+    padding:2px 6px; border-radius:50%}
+  .chip .x:hover{color:#f47060}
+  .saverow{display:flex; gap:8px; margin-top:8px}
+  .saverow input{flex:1; font-size:14px}
+  .saverow button{background:var(--bg); border:1px solid var(--line); color:var(--dim);
+    border-radius:8px; padding:0 14px; font-size:13px; cursor:pointer; white-space:nowrap}
+  .saverow button:hover{border-color:var(--accent); color:var(--accent)}
+  .bigtime{font-size:64px; text-align:center; font-variant-numeric:tabular-nums;
+    font-weight:200; margin:8px 0 2px; letter-spacing:.02em}
+  .sub{text-align:center; color:var(--dim); font-size:13px; min-height:18px; margin-bottom:14px}
+  .sub b{color:var(--accent2); font-weight:600}
+  .bar{position:relative; height:10px; background:var(--bg); border-radius:5px;
+    margin:10px 0 22px; overflow:visible}
+  .fill{position:absolute; left:0; top:0; bottom:0; background:var(--accent);
+    border-radius:5px; width:0%}
+  .tick{position:absolute; top:-4px; width:2px; height:18px; background:var(--dim);
+    border-radius:1px; transform:translateX(-1px)}
+  .tick.hit{background:var(--accent2)}
+  .btns{display:flex; gap:10px; margin-top:18px}
+  .btns button{flex:1; border:none; border-radius:10px; padding:14px; font-size:16px;
+    font-weight:600; cursor:pointer}
+  #startBtn{background:var(--accent); color:#0b2f2a}
+  #pauseBtn{background:var(--accent2); color:#3a2a08; display:none}
+  #resetBtn{background:var(--bg); color:var(--dim); border:1px solid var(--line)!important; display:none}
+  .done .bigtime{color:var(--accent)}
+  .hidden{display:none}
+  #runview{display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Task Metronome</h1>
+
+  <div id="setup">
+    <div id="presetArea" class="hidden">
+      <label>Presets — tap to start instantly</label>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <label>Task duration (mm:ss or minutes)</label>
+    <input type="text" id="dur" value="25:00" inputmode="numeric">
+
+    <label>Chime spacing</label>
+    <div class="modes">
+      <button id="mFrac" class="on">Fractions</button>
+      <button id="mInt">Every interval</button>
+    </div>
+
+    <div id="fracBox">
+      <label>Split into how many segments? (4 = chime at ¼, ½, ¾)</label>
+      <input type="number" id="segs" value="4" min="2" max="60">
+    </div>
+    <div id="intBox" class="hidden">
+      <label>Chime every (mm:ss)</label>
+      <input type="text" id="ival" value="5:00" inputmode="numeric">
+    </div>
+
+    <label>Condense chimes toward the end — <span id="condLbl">off</span></label>
+    <input type="range" id="cond" min="0" max="100" value="0">
+
+    <label>Chime sound</label>
+    <select id="sound">
+      <option value="classic">Classic (two-tone ding)</option>
+      <option value="bell">Bell</option>
+      <option value="marimba">Marimba</option>
+      <option value="ping">Soft ping</option>
+      <option value="beep">Digital beep</option>
+      <option value="chirp">Bird chirp</option>
+    </select>
+
+    <div class="preview" id="preview"></div>
+
+    <div class="saverow">
+      <input type="text" id="pname" placeholder="Preset name…" maxlength="24">
+      <button id="saveBtn">Save preset</button>
+    </div>
+  </div>
+
+  <div id="runview">
+    <div class="bigtime" id="clock">25:00</div>
+    <div class="sub" id="nextinfo"></div>
+    <div class="bar"><div class="fill" id="fill"></div><div id="ticks"></div></div>
+  </div>
+
+  <div class="btns">
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let mode = 'frac';
+let times = [], D = 0, hit = 0;
+let running = false, startTs = 0, pausedElapsed = 0, timer = null, wakeLock = null;
+let ac = null;
+
+// ---------- parsing / formatting ----------
+function parseTime(s){
+  const p = String(s).trim().split(':');
+  if (p.length === 2) return (parseInt(p[0])||0)*60 + (parseInt(p[1])||0);
+  const v = parseFloat(p[0]);
+  return isNaN(v) ? 0 : v*60;
+}
+function fmt(sec){
+  sec = Math.max(0, Math.round(sec));
+  const m = Math.floor(sec/60), s = sec%60;
+  return m + ':' + String(s).padStart(2,'0');
+}
+
+// ---------- schedule ----------
+function buildSchedule(){
+  D = parseTime($('dur').value);
+  let base = [];
+  if (mode === 'frac'){
+    const n = Math.max(2, parseInt($('segs').value)||4);
+    for (let i=1; i<n; i++) base.push(D*i/n);
+  } else {
+    const I = parseTime($('ival').value);
+    if (I > 0) for (let t=I; t < D-0.5; t+=I) base.push(t);
+  }
+  // condense: exponent < 1 pushes chime times toward the end
+  const e = 1 - 0.7 * (+$('cond').value/100);
+  times = base.map(t => D * Math.pow(t/D, e));
+  times.push(D);                        // final chime always
+  times = [...new Set(times.map(t=>Math.round(t)))].sort((a,b)=>a-b);
+}
+
+function refreshPreview(){
+  buildSchedule();
+  $('condLbl').textContent = +$('cond').value ? $('cond').value + '%' : 'off';
+  if (!D || D <= 0){ $('preview').innerHTML = 'Enter a duration.'; return; }
+  if (times.length > 64){ $('preview').innerHTML = 'That’s a lot of chimes — consider a wider spacing.'; return; }
+  $('preview').innerHTML = 'Chimes at: ' +
+    times.map(t => t===D ? '<b>'+fmt(t)+' (end)</b>' : fmt(t)).join(' · ');
+}
+
+// ---------- audio ----------
+function tone(freq, delay, dur, vol, type='sine'){
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.value = freq;
+  o.connect(g); g.connect(ac.destination);
+  const t0 = ac.currentTime + delay;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.start(t0); o.stop(t0 + dur + 0.05);
+}
+const SOUNDS = {
+  classic: d => { tone(880,d,.35,.4); tone(1320,d+.13,.35,.3); },
+  bell:    d => { tone(523,d,1.1,.4); tone(1046,d,.8,.16); tone(1567,d,.5,.07); },
+  marimba: d => { tone(440,d,.18,.5,'triangle'); tone(587,d+.14,.18,.45,'triangle'); tone(880,d+.28,.22,.4,'triangle'); },
+  ping:    d => { tone(1760,d,.7,.28); },
+  beep:    d => { tone(988,d,.12,.18,'square'); tone(988,d+.2,.12,.18,'square'); },
+  chirp:   d => { tone(2093,d,.09,.25); tone(2637,d+.11,.09,.22); tone(2093,d+.22,.12,.2); },
+};
+function chime(d=0){ SOUNDS[$('sound').value](d); }
+function finalChime(){ [0,.35,.7].forEach(d => chime(d)); }
+async function ensureAudio(){
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+  if (ac.state === 'suspended') await ac.resume();
+}
+
+// ---------- presets ----------
+const PKEY = 'tm_presets';
+const loadPresets = () => { try { return JSON.parse(localStorage.getItem(PKEY)) || []; } catch(e){ return []; } };
+const storePresets = p => localStorage.setItem(PKEY, JSON.stringify(p));
+
+function renderPresets(){
+  const ps = loadPresets();
+  $('presetArea').classList.toggle('hidden', ps.length === 0);
+  $('chips').innerHTML = ps.map((p,i) =>
+    `<span class="chip" data-i="${i}" title="${p.dur} · start now">▶ ${p.name}<span class="x" data-del="${i}" title="Delete preset">×</span></span>`
+  ).join('');
+}
+function applyPreset(p){
+  $('dur').value = p.dur; $('segs').value = p.segs; $('ival').value = p.ival;
+  $('cond').value = p.cond; $('sound').value = p.sound;
+  (p.mode === 'frac' ? setFrac : setInt)();
+}
+$('chips').addEventListener('click', e => {
+  const del = e.target.dataset.del;
+  if (del !== undefined){
+    const ps = loadPresets(); ps.splice(+del, 1); storePresets(ps); renderPresets();
+    e.stopPropagation(); return;
+  }
+  const chip = e.target.closest('.chip');
+  if (chip){ applyPreset(loadPresets()[+chip.dataset.i]); start(); }   // quickfire
+});
+$('saveBtn').onclick = () => {
+  buildSchedule();
+  if (!D || D <= 0) return;
+  const name = $('pname').value.trim() || $('dur').value + ' task';
+  const ps = loadPresets().filter(p => p.name !== name);   // overwrite same name
+  ps.push({ name, dur:$('dur').value, mode, segs:$('segs').value,
+            ival:$('ival').value, cond:$('cond').value, sound:$('sound').value });
+  storePresets(ps); $('pname').value = ''; renderPresets();
+};
+
+// ---------- run loop ----------
+function elapsed(){ return running ? pausedElapsed + (Date.now()-startTs)/1000 : pausedElapsed; }
+
+function drawTicks(){
+  $('ticks').innerHTML = times.map((t,i) =>
+    `<div class="tick" data-i="${i}" style="left:${(t/D*100).toFixed(2)}%"></div>`).join('');
+}
+
+function tick(){
+  const el = elapsed();
+  while (hit < times.length && el >= times[hit]){
+    (times[hit] === D) ? finalChime() : chime();
+    const tk = document.querySelector(`.tick[data-i="${hit}"]`);
+    if (tk) tk.classList.add('hit');
+    hit++;
+  }
+  $('clock').textContent = fmt(D - el);
+  $('fill').style.width = Math.min(100, el/D*100) + '%';
+  const next = times.find(t => t > el);
+  if (el >= D){
+    finish();
+  } else {
+    $('nextinfo').innerHTML = next !== undefined
+      ? 'next chime in <b>' + fmt(next - el) + '</b>' : '';
+  }
+}
+
+async function start(){
+  buildSchedule();
+  if (!D || D <= 0) return;
+  await ensureAudio();
+  chime();                              // start-of-task chime
+  hit = 0; pausedElapsed = 0; startTs = Date.now(); running = true;
+  drawTicks();
+  $('setup').classList.add('hidden');
+  $('runview').style.display = 'block';
+  $('startBtn').style.display = 'none';
+  $('pauseBtn').style.display = 'block'; $('pauseBtn').textContent = 'Pause';
+  $('resetBtn').style.display = 'block';
+  document.querySelector('.card').classList.remove('done');
+  try { wakeLock = await navigator.wakeLock?.request('screen'); } catch(e){}
+  timer = setInterval(tick, 100);
+  tick();
+}
+
+function pauseResume(){
+  if (running){
+    pausedElapsed = elapsed(); running = false;
+    $('pauseBtn').textContent = 'Resume';
+  } else {
+    startTs = Date.now(); running = true;
+    $('pauseBtn').textContent = 'Pause';
+  }
+}
+
+function finish(){
+  clearInterval(timer); running = false;
+  $('clock').textContent = '0:00';
+  $('fill').style.width = '100%';
+  $('nextinfo').innerHTML = '<b>Done!</b>';
+  $('pauseBtn').style.display = 'none';
+  document.querySelector('.card').classList.add('done');
+}
+
+function reset(){
+  clearInterval(timer); running = false; pausedElapsed = 0; hit = 0;
+  try { wakeLock?.release(); } catch(e){}
+  $('runview').style.display = 'none';
+  $('setup').classList.remove('hidden');
+  $('startBtn').style.display = 'block';
+  $('pauseBtn').style.display = 'none';
+  $('resetBtn').style.display = 'none';
+  document.querySelector('.card').classList.remove('done');
+  refreshPreview();
+}
+
+// ---------- wiring ----------
+function setFrac(){ mode='frac'; $('mFrac').classList.add('on'); $('mInt').classList.remove('on');
+  $('fracBox').classList.remove('hidden'); $('intBox').classList.add('hidden'); refreshPreview(); }
+function setInt(){ mode='int'; $('mInt').classList.add('on'); $('mFrac').classList.remove('on');
+  $('intBox').classList.remove('hidden'); $('fracBox').classList.add('hidden'); refreshPreview(); }
+$('mFrac').onclick = setFrac;
+$('mInt').onclick = setInt;
+['dur','segs','ival','cond'].forEach(id => $(id).addEventListener('input', refreshPreview));
+$('sound').addEventListener('change', async () => { await ensureAudio(); chime(); });  // audition on select
+$('startBtn').onclick = start;
+$('pauseBtn').onclick = pauseResume;
+$('resetBtn').onclick = reset;
+document.addEventListener('visibilitychange', async () => {   // re-acquire wake lock
+  if (document.visibilityState === 'visible' && running){
+    try { wakeLock = await navigator.wakeLock?.request('screen'); } catch(e){}
+  }
+});
+renderPresets();
+refreshPreview();
+</script>
+</body>
+</html>
