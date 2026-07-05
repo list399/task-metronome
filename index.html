@@ -149,9 +149,6 @@
       <input type="text" id="infival" value="1:00" inputmode="numeric">
     </div>
 
-    <label>Condense chimes toward the end — <span id="condLbl">off</span></label>
-    <input type="range" id="cond" min="0" max="100" value="0">
-
     <label>Chime sound</label>
     <select id="sound">
       <option value="classic">Classic (two-tone ding)</option>
@@ -228,16 +225,13 @@ function buildSchedule(){
     const n = Math.max(2, parseInt($('segs').value)||4);
     for (let i=1; i<n; i++) base.push(D*i/n);
   }
-  // condense: exponent < 1 pushes chime times toward the end
-  const e = 1 - 0.7 * (+$('cond').value/100);
-  times = base.map(t => D * Math.pow(t/D, e));
+  times = base.slice();
   times.push(D);                        // final chime always
   times = [...new Set(times.map(t=>Math.round(t)))].sort((a,b)=>a-b);
 }
 
 function refreshPreview(){
   buildSchedule();
-  $('condLbl').textContent = +$('cond').value ? $('cond').value + '%' : 'off';
 
   if (mode === 'inf'){
     $('preview').innerHTML = times.length > 0 ? 'Chimes every ' + fmt(times[0]) : 'Enter interval.';
@@ -319,7 +313,7 @@ function renderPresets(){
 function applyPreset(p){
   $('dur').value = p.dur; $('segs').value = p.segs;
   if (p.infival) $('infival').value = p.infival;
-  $('cond').value = p.cond; $('sound').value = p.sound;
+  $('sound').value = p.sound;
   (p.mode === 'inf' ? setInf : setFrac)();
 }
 $('chips').addEventListener('click', e => {
@@ -337,7 +331,7 @@ $('saveBtn').onclick = () => {
   const name = $('pname').value.trim() || $('dur').value + ' task';
   const ps = loadPresets().filter(p => p.name !== name);   // overwrite same name
   ps.push({ name, dur:$('dur').value, mode, segs:$('segs').value,
-            infival:$('infival').value, cond:$('cond').value, sound:$('sound').value });
+            infival:$('infival').value, sound:$('sound').value });
   storePresets(ps); $('pname').value = ''; renderPresets();
 };
 
@@ -462,14 +456,14 @@ $('muteBtn').setAttribute('role', 'switch');
 function setFrac(){ mode='frac'; $('mFrac').classList.add('on'); $('mInf').classList.remove('on');
   $('fracBox').classList.remove('hidden'); $('infBox').classList.add('hidden');
   $('durLabel').style.display = 'block'; $('dur').style.display = 'block';
-  $('cond').parentElement.style.display = 'block'; refreshPreview(); }
+  refreshPreview(); }
 function setInf(){ mode='inf'; $('mInf').classList.add('on'); $('mFrac').classList.remove('on');
   $('infBox').classList.remove('hidden'); $('fracBox').classList.add('hidden');
   $('durLabel').style.display = 'none'; $('dur').style.display = 'none';
-  $('cond').parentElement.style.display = 'none'; refreshPreview(); }
+  refreshPreview(); }
 $('mFrac').onclick = setFrac;
 $('mInf').onclick = setInf;
-['dur','segs','infival','cond'].forEach(id => $(id).addEventListener('input', refreshPreview));
+['dur','segs','infival'].forEach(id => $(id).addEventListener('input', refreshPreview));
 $('sound').addEventListener('change', async () => { await ensureAudio(); chime(); });  // audition on select
 $('startBtn').onclick = start;
 $('pauseBtn').onclick = pauseResume;
@@ -490,8 +484,8 @@ $('nextinfo').setAttribute('aria-atomic', 'true');
 // Initialize default presets if none exist
 if (loadPresets().length === 0){
   const ps = [
-    { name: '10m Quick', dur:'10:00', mode:'frac', segs:2, infival:'1:00', cond:'0', sound:'classic' },
-    { name: '1h Focus', dur:'60:00', mode:'frac', segs:6, infival:'1:00', cond:'0', sound:'classic' }
+    { name: '10m Quick', dur:'10:00', mode:'frac', segs:2, infival:'1:00', sound:'classic' },
+    { name: '1h Focus', dur:'60:00', mode:'frac', segs:6, infival:'1:00', sound:'classic' }
   ];
   storePresets(ps);
 }
