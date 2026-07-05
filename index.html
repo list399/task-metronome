@@ -137,17 +137,12 @@
     <label>Chime spacing</label>
     <div class="modes">
       <button id="mFrac" class="on">Fractions</button>
-      <button id="mInt">Every interval</button>
       <button id="mInf">Infinite</button>
     </div>
 
     <div id="fracBox">
       <label>Split into how many segments? (4 = chime at ¼, ½, ¾)</label>
       <input type="number" id="segs" value="4" min="2" max="60">
-    </div>
-    <div id="intBox" class="hidden">
-      <label>Chime every (mm:ss)</label>
-      <input type="text" id="ival" value="5:00" inputmode="numeric">
     </div>
     <div id="infBox" class="hidden">
       <label>Chime every (mm:ss or minutes)</label>
@@ -231,9 +226,6 @@ function buildSchedule(){
   if (mode === 'frac'){
     const n = Math.max(2, parseInt($('segs').value)||4);
     for (let i=1; i<n; i++) base.push(D*i/n);
-  } else {
-    const I = parseTime($('ival').value);
-    if (I > 0) for (let t=I; t < D-0.5; t+=I) base.push(t);
   }
   // condense: exponent < 1 pushes chime times toward the end
   const e = 1 - 0.7 * (+$('cond').value/100);
@@ -296,9 +288,9 @@ function renderPresets(){
   ).join('');
 }
 function applyPreset(p){
-  $('dur').value = p.dur; $('segs').value = p.segs; $('ival').value = p.ival;
+  $('dur').value = p.dur; $('segs').value = p.segs;
   $('cond').value = p.cond; $('sound').value = p.sound;
-  (p.mode === 'frac' ? setFrac : setInt)();
+  (p.mode === 'inf' ? setInf : setFrac)();
 }
 $('chips').addEventListener('click', e => {
   const del = e.target.dataset.del;
@@ -418,22 +410,17 @@ $('muteBtn').setAttribute('aria-label', 'Audio enabled');
 $('muteBtn').setAttribute('role', 'switch');
 
 // ---------- wiring ----------
-function setFrac(){ mode='frac'; $('mFrac').classList.add('on'); $('mInt').classList.remove('on'); $('mInf').classList.remove('on');
-  $('fracBox').classList.remove('hidden'); $('intBox').classList.add('hidden'); $('infBox').classList.add('hidden');
+function setFrac(){ mode='frac'; $('mFrac').classList.add('on'); $('mInf').classList.remove('on');
+  $('fracBox').classList.remove('hidden'); $('infBox').classList.add('hidden');
   $('durLabel').style.display = 'block'; $('dur').style.display = 'block';
   $('cond').parentElement.style.display = 'block'; refreshPreview(); }
-function setInt(){ mode='int'; $('mInt').classList.add('on'); $('mFrac').classList.remove('on'); $('mInf').classList.remove('on');
-  $('intBox').classList.remove('hidden'); $('fracBox').classList.add('hidden'); $('infBox').classList.add('hidden');
-  $('durLabel').style.display = 'block'; $('dur').style.display = 'block';
-  $('cond').parentElement.style.display = 'block'; refreshPreview(); }
-function setInf(){ mode='inf'; $('mInf').classList.add('on'); $('mFrac').classList.remove('on'); $('mInt').classList.remove('on');
-  $('infBox').classList.remove('hidden'); $('fracBox').classList.add('hidden'); $('intBox').classList.add('hidden');
+function setInf(){ mode='inf'; $('mInf').classList.add('on'); $('mFrac').classList.remove('on');
+  $('infBox').classList.remove('hidden'); $('fracBox').classList.add('hidden');
   $('durLabel').style.display = 'none'; $('dur').style.display = 'none';
   $('cond').parentElement.style.display = 'none'; refreshPreview(); }
 $('mFrac').onclick = setFrac;
-$('mInt').onclick = setInt;
 $('mInf').onclick = setInf;
-['dur','segs','ival','infival','cond'].forEach(id => $(id).addEventListener('input', refreshPreview));
+['dur','segs','infival','cond'].forEach(id => $(id).addEventListener('input', refreshPreview));
 $('sound').addEventListener('change', async () => { await ensureAudio(); chime(); });  // audition on select
 $('startBtn').onclick = start;
 $('pauseBtn').onclick = pauseResume;
