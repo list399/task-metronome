@@ -64,10 +64,10 @@
     width:180px; height:180px; transform:rotate(-90deg);
   }
   .timer-ring-bg{
-    stroke:var(--line); fill:none; stroke-width:3;
+    stroke:var(--line); fill:none; stroke-width:8;
   }
   .timer-ring-progress{
-    stroke:var(--accent); fill:none; stroke-width:3;
+    stroke:var(--accent); fill:none; stroke-width:8;
     stroke-dasharray: 565.48; stroke-dashoffset:var(--timer-offset);
     transition:stroke-dashoffset 0.1s linear;
     stroke-linecap:round;
@@ -77,12 +77,12 @@
     width:160px; height:160px;
   }
   .timer-display{
-    font-size:42px; text-align:center; font-variant-numeric:tabular-nums;
-    font-weight:200; letter-spacing:.02em; color:var(--ink);
+    font-size:24px; text-align:center; font-variant-numeric:tabular-nums;
+    font-weight:200; letter-spacing:.02em; color:var(--dim);
     transition:color 0.3s ease;
   }
   .timer-display-label{
-    font-size:11px; color:var(--dim); margin-top:2px; letter-spacing:.05em; text-transform:uppercase;
+    font-size:9px; color:var(--dim); margin-top:2px; letter-spacing:.05em; text-transform:uppercase;
   }
 
   .sub{text-align:center; color:var(--dim); font-size:13px; min-height:18px; margin-bottom:14px}
@@ -131,13 +131,14 @@
       <div class="chips" id="chips"></div>
     </div>
 
-    <label>Task duration (mm:ss or minutes)</label>
+    <label id="durLabel">Task duration (mm:ss or minutes)</label>
     <input type="text" id="dur" value="25:00" inputmode="numeric">
 
     <label>Chime spacing</label>
     <div class="modes">
       <button id="mFrac" class="on">Fractions</button>
       <button id="mInt">Every interval</button>
+      <button id="mInf">Infinite</button>
     </div>
 
     <div id="fracBox">
@@ -147,6 +148,10 @@
     <div id="intBox" class="hidden">
       <label>Chime every (mm:ss)</label>
       <input type="text" id="ival" value="5:00" inputmode="numeric">
+    </div>
+    <div id="infBox" class="hidden">
+      <label>Chime every (mm:ss or minutes)</label>
+      <input type="text" id="infival" value="1:00" inputmode="numeric">
     </div>
 
     <label>Condense chimes toward the end — <span id="condLbl">off</span></label>
@@ -214,6 +219,13 @@ function fmt(sec){
 
 // ---------- schedule ----------
 function buildSchedule(){
+  if (mode === 'inf'){
+    D = 999999;  // large sentinel; timer won't actually end
+    const I = parseTime($('infival').value);
+    times = [];
+    if (I > 0) for (let t=I; t <= 86400; t+=I) times.push(t);  // schedule 24h of chimes
+    return;
+  }
   D = parseTime($('dur').value);
   let base = [];
   if (mode === 'frac'){
@@ -232,11 +244,17 @@ function buildSchedule(){
 
 function refreshPreview(){
   buildSchedule();
-  $('condLbl').textContent = +$('cond').value ? $('cond').value + '%' : 'off';
-  if (!D || D <= 0){ $('preview').innerHTML = 'Enter a duration.'; return; }
-  if (times.length > 64){ $('preview').innerHTML = 'That’s a lot of chimes — consider a wider spacing.'; return; }
-  $('preview').innerHTML = 'Chimes at: ' +
-    times.map(t => t===D ? '<b>'+fmt(t)+' (end)</b>' : fmt(t)).join(' · ');
+  $(‘condLbl’).textContent = +$(‘cond’).value ? $(‘cond’).value + ‘%’ : ‘off’;
+
+  if (mode === ‘inf’){
+    $(‘preview’).innerHTML = times.length > 0 ? ‘Chimes every ‘ + fmt(times[0]) : ‘Enter interval.’;
+    return;
+  }
+
+  if (!D || D <= 0){ $(‘preview’).innerHTML = ‘Enter a duration.’; return; }
+  if (times.length > 64){ $(‘preview’).innerHTML = ‘That’s a lot of chimes — consider a wider spacing.’; return; }
+  $(‘preview’).innerHTML = ‘Chimes at: ‘ +
+    times.map(t => t===D ? ‘<b>’+fmt(t)+’ (end)</b>’ : fmt(t)).join(‘ · ‘);
 }
 
 // ---------- audio ----------
@@ -400,13 +418,22 @@ $('muteBtn').setAttribute('aria-label', 'Audio enabled');
 $('muteBtn').setAttribute('role', 'switch');
 
 // ---------- wiring ----------
-function setFrac(){ mode='frac'; $('mFrac').classList.add('on'); $('mInt').classList.remove('on');
-  $('fracBox').classList.remove('hidden'); $('intBox').classList.add('hidden'); refreshPreview(); }
-function setInt(){ mode='int'; $('mInt').classList.add('on'); $('mFrac').classList.remove('on');
-  $('intBox').classList.remove('hidden'); $('fracBox').classList.add('hidden'); refreshPreview(); }
+function setFrac(){ mode='frac'; $('mFrac').classList.add('on'); $('mInt').classList.remove('on'); $('mInf').classList.remove('on');
+  $('fracBox').classList.remove('hidden'); $('intBox').classList.add('hidden'); $('infBox').classList.add('hidden');
+  $('durLabel').style.display = 'block'; $('dur').style.display = 'block';
+  $('cond').parentElement.style.display = 'block'; refreshPreview(); }
+function setInt(){ mode='int'; $('mInt').classList.add('on'); $('mFrac').classList.remove('on'); $('mInf').classList.remove('on');
+  $('intBox').classList.remove('hidden'); $('fracBox').classList.add('hidden'); $('infBox').classList.add('hidden');
+  $('durLabel').style.display = 'block'; $('dur').style.display = 'block';
+  $('cond').parentElement.style.display = 'block'; refreshPreview(); }
+function setInf(){ mode='inf'; $('mInf').classList.add('on'); $('mFrac').classList.remove('on'); $('mInt').classList.remove('on');
+  $('infBox').classList.remove('hidden'); $('fracBox').classList.add('hidden'); $('intBox').classList.add('hidden');
+  $('durLabel').style.display = 'none'; $('dur').style.display = 'none';
+  $('cond').parentElement.style.display = 'none'; refreshPreview(); }
 $('mFrac').onclick = setFrac;
 $('mInt').onclick = setInt;
-['dur','segs','ival','cond'].forEach(id => $(id).addEventListener('input', refreshPreview));
+$('mInf').onclick = setInf;
+['dur','segs','ival','infival','cond'].forEach(id => $(id).addEventListener('input', refreshPreview));
 $('sound').addEventListener('change', async () => { await ensureAudio(); chime(); });  // audition on select
 $('startBtn').onclick = start;
 $('pauseBtn').onclick = pauseResume;
@@ -423,6 +450,15 @@ $('pauseBtn').setAttribute('aria-label', 'Pause timer');
 $('resetBtn').setAttribute('aria-label', 'Reset timer');
 $('nextinfo').setAttribute('aria-live', 'polite');
 $('nextinfo').setAttribute('aria-atomic', 'true');
+
+// Initialize default presets if none exist
+if (loadPresets().length === 0){
+  const ps = [
+    { name: '10m Quick', dur:'10:00', mode:'frac', segs:2, ival:'1:00', cond:'0', sound:'classic' },
+    { name: '1h Focus', dur:'60:00', mode:'frac', segs:6, ival:'10:00', cond:'0', sound:'classic' }
+  ];
+  storePresets(ps);
+}
 
 renderPresets();
 refreshPreview();
