@@ -244,17 +244,17 @@ function buildSchedule(){
 
 function refreshPreview(){
   buildSchedule();
-  $(‘condLbl’).textContent = +$(‘cond’).value ? $(‘cond’).value + ‘%’ : ‘off’;
+  $('condLbl').textContent = +$('cond').value ? $('cond').value + '%' : 'off';
 
-  if (mode === ‘inf’){
-    $(‘preview’).innerHTML = times.length > 0 ? ‘Chimes every ‘ + fmt(times[0]) : ‘Enter interval.’;
+  if (mode === 'inf'){
+    $('preview').innerHTML = times.length > 0 ? 'Chimes every ' + fmt(times[0]) : 'Enter interval.';
     return;
   }
 
-  if (!D || D <= 0){ $(‘preview’).innerHTML = ‘Enter a duration.’; return; }
-  if (times.length > 64){ $(‘preview’).innerHTML = ‘That’s a lot of chimes — consider a wider spacing.’; return; }
-  $(‘preview’).innerHTML = ‘Chimes at: ‘ +
-    times.map(t => t===D ? ‘<b>’+fmt(t)+’ (end)</b>’ : fmt(t)).join(‘ · ‘);
+  if (!D || D <= 0){ $('preview').innerHTML = 'Enter a duration.'; return; }
+  if (times.length > 64){ $('preview').innerHTML = "That's a lot of chimes — consider a wider spacing."; return; }
+  $('preview').innerHTML = 'Chimes at: ' +
+    times.map(t => t===D ? '<b>'+fmt(t)+' (end)</b>' : fmt(t)).join(' · ');
 }
 
 // ---------- audio ----------
