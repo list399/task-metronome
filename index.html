@@ -8,6 +8,7 @@
   :root{
     --bg:#12141a; --card:#1c1f28; --ink:#e8eaf0; --dim:#8a90a3;
     --accent:#5eead4; --accent2:#f4b860; --line:#2c3040;
+    --timer-offset: 0;
   }
   *{box-sizing:border-box; margin:0}
   body{
@@ -17,8 +18,16 @@
   }
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px;
     padding:28px; width:100%; max-width:440px}
+  .header-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:20px}
   h1{font-size:15px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim);
-    text-align:center; margin-bottom:20px}
+    text-align:center; flex:1; margin:0}
+  #muteBtn{
+    background:var(--bg); border:1px solid var(--line); color:var(--dim);
+    border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer;
+    white-space:nowrap; transition:all 0.2s ease;
+  }
+  #muteBtn:hover{border-color:var(--accent); color:var(--accent)}
+  #muteBtn.muted{border-color:var(--accent2); color:var(--accent2); background:rgba(244,184,96,0.1)}
   label{display:block; font-size:12px; color:var(--dim); margin:14px 0 4px; letter-spacing:.05em}
   input[type=text], input[type=number], select{
     width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px;
@@ -45,8 +54,37 @@
   .saverow button{background:var(--bg); border:1px solid var(--line); color:var(--dim);
     border-radius:8px; padding:0 14px; font-size:13px; cursor:pointer; white-space:nowrap}
   .saverow button:hover{border-color:var(--accent); color:var(--accent)}
-  .bigtime{font-size:64px; text-align:center; font-variant-numeric:tabular-nums;
-    font-weight:200; margin:8px 0 2px; letter-spacing:.02em}
+
+  /* Shape-based timer */
+  .timer-ring-container{
+    display:flex; align-items:center; justify-content:center; margin:20px 0 16px;
+    position:relative;
+  }
+  .timer-ring-svg{
+    width:180px; height:180px; transform:rotate(-90deg);
+  }
+  .timer-ring-bg{
+    stroke:var(--line); fill:none; stroke-width:3;
+  }
+  .timer-ring-progress{
+    stroke:var(--accent); fill:none; stroke-width:3;
+    stroke-dasharray: 565.48; stroke-dashoffset:var(--timer-offset);
+    transition:stroke-dashoffset 0.1s linear;
+    stroke-linecap:round;
+  }
+  .timer-ring-center{
+    position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    width:160px; height:160px;
+  }
+  .timer-display{
+    font-size:42px; text-align:center; font-variant-numeric:tabular-nums;
+    font-weight:200; letter-spacing:.02em; color:var(--ink);
+    transition:color 0.3s ease;
+  }
+  .timer-display-label{
+    font-size:11px; color:var(--dim); margin-top:2px; letter-spacing:.05em; text-transform:uppercase;
+  }
+
   .sub{text-align:center; color:var(--dim); font-size:13px; min-height:18px; margin-bottom:14px}
   .sub b{color:var(--accent2); font-weight:600}
   .bar{position:relative; height:10px; background:var(--bg); border-radius:5px;
@@ -62,14 +100,30 @@
   #startBtn{background:var(--accent); color:#0b2f2a}
   #pauseBtn{background:var(--accent2); color:#3a2a08; display:none}
   #resetBtn{background:var(--bg); color:var(--dim); border:1px solid var(--line)!important; display:none}
-  .done .bigtime{color:var(--accent)}
+
+  /* Done state */
+  .done .timer-ring-progress{stroke:var(--accent)}
+  .done .timer-display{color:var(--accent)}
+
   .hidden{display:none}
   #runview{display:none}
+
+  /* Mobile responsive */
+  @media (max-width:500px){
+    .card{padding:20px}
+    .timer-ring-svg{width:160px; height:160px}
+    .timer-ring-center{width:140px; height:140px}
+    .timer-display{font-size:36px}
+    h1{font-size:14px}
+  }
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>Task Metronome</h1>
+  <div class="header-row">
+    <h1>Task Metronome</h1>
+    <button id="muteBtn" title="Toggle audio on/off">🔊</button>
+  </div>
 
   <div id="setup">
     <div id="presetArea" class="hidden">
@@ -117,7 +171,16 @@
   </div>
 
   <div id="runview">
-    <div class="bigtime" id="clock">25:00</div>
+    <div class="timer-ring-container">
+      <svg class="timer-ring-svg" viewBox="0 0 180 180">
+        <circle class="timer-ring-bg" cx="90" cy="90" r="90"></circle>
+        <circle class="timer-ring-progress" id="timerRing" cx="90" cy="90" r="90"></circle>
+      </svg>
+      <div class="timer-ring-center">
+        <div class="timer-display" id="clock">25:00</div>
+        <div class="timer-display-label">remaining</div>
+      </div>
+    </div>
     <div class="sub" id="nextinfo"></div>
     <div class="bar"><div class="fill" id="fill"></div><div id="ticks"></div></div>
   </div>
