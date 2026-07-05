@@ -490,8 +490,8 @@ $('nextinfo').setAttribute('aria-atomic', 'true');
 // Initialize default presets if none exist
 if (loadPresets().length === 0){
   const ps = [
-    { name: '10m Quick', dur:'10:00', mode:'frac', segs:2, ival:'1:00', cond:'0', sound:'classic' },
-    { name: '1h Focus', dur:'60:00', mode:'frac', segs:6, ival:'10:00', cond:'0', sound:'classic' }
+    { name: '10m Quick', dur:'10:00', mode:'frac', segs:2, infival:'1:00', cond:'0', sound:'classic' },
+    { name: '1h Focus', dur:'60:00', mode:'frac', segs:6, infival:'1:00', cond:'0', sound:'classic' }
   ];
   storePresets(ps);
 }
