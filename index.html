@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Task Metronome</title>
 <style>
   :root{
     --bg:#12141a; --card:#1c1f28; --ink:#e8eaf0; --dim:#8a90a3;
     --accent:#5eead4; --accent2:#f4b860; --line:#2c3040;
-    --timer-offset: 0;
   }
   *{box-sizing:border-box; margin:0}
   body{
@@ -23,7 +22,7 @@
     text-align:center; flex:1; margin:0}
   #muteBtn{
     background:var(--bg); border:1px solid var(--line); color:var(--dim);
-    border-radius:8px; padding:8px 12px; font-size:13px; cursor:pointer;
+    border-radius:8px; padding:8px 12px; min-height:44px; min-width:44px; font-size:15px; cursor:pointer;
     white-space:nowrap; transition:all 0.2s ease;
   }
   #muteBtn:hover{border-color:var(--accent); color:var(--accent)}
@@ -36,7 +35,7 @@
   input:focus, select:focus{outline:none; border-color:var(--accent)}
   .modes{display:flex; gap:8px; margin-top:4px}
   .modes button{flex:1; background:var(--bg); border:1px solid var(--line); color:var(--dim);
-    border-radius:8px; padding:9px; font-size:13px; cursor:pointer}
+    border-radius:8px; padding:12px; min-height:44px; font-size:14px; cursor:pointer}
   .modes button.on{border-color:var(--accent); color:var(--accent)}
   input[type=range]{width:100%; accent-color:var(--accent); margin-top:6px}
   .preview{font-size:12px; color:var(--dim); margin-top:14px; line-height:1.6; min-height:32px}
@@ -46,8 +45,8 @@
     border:1px solid var(--accent); color:var(--accent); border-radius:999px;
     padding:7px 8px 7px 14px; font-size:13px; font-weight:600; cursor:pointer}
   .chip:hover{background:#17332e}
-  .chip .x{color:var(--dim); font-weight:400; font-size:15px; line-height:1;
-    padding:2px 6px; border-radius:50%}
+  .chip .x{color:var(--dim); font-weight:400; font-size:17px; line-height:1;
+    padding:10px 8px; margin:-8px -4px -8px 0; border-radius:50%}
   .chip .x:hover{color:#f47060}
   .saverow{display:flex; gap:8px; margin-top:8px}
   .saverow input{flex:1; font-size:14px}
@@ -55,45 +54,28 @@
     border-radius:8px; padding:0 14px; font-size:13px; cursor:pointer; white-space:nowrap}
   .saverow button:hover{border-color:var(--accent); color:var(--accent)}
 
-  /* Shape-based timer */
-  .timer-ring-container{
-    display:flex; align-items:center; justify-content:center; margin:20px 0 16px;
-    position:relative;
-  }
-  .timer-ring-svg{
-    width:180px; height:180px; transform:rotate(-90deg);
-  }
-  .timer-ring-bg{
-    stroke:var(--line); fill:none; stroke-width:8;
-  }
-  .timer-ring-progress{
-    stroke:var(--accent); fill:none; stroke-width:8;
-    stroke-dasharray: 565.48; stroke-dashoffset:var(--timer-offset);
-    transition:stroke-dashoffset 0.1s linear;
-    stroke-linecap:round;
-  }
-  .timer-ring-center{
-    position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    width:160px; height:160px;
-  }
-  .timer-display{
-    font-size:24px; text-align:center; font-variant-numeric:tabular-nums;
-    font-weight:200; letter-spacing:.02em; color:var(--dim);
-    transition:color 0.3s ease;
-  }
-  .timer-display-label{
-    font-size:9px; color:var(--dim); margin-top:2px; letter-spacing:.05em; text-transform:uppercase;
-  }
+  /* Segment progress (current interval) — the primary indicator */
+  .seg{margin:24px 0 18px}
+  .seg-head{display:flex; align-items:baseline; justify-content:center; gap:8px; margin-bottom:10px}
+  .seg-time{font-size:22px; font-weight:400; color:var(--ink);
+    font-variant-numeric:tabular-nums; letter-spacing:.02em; transition:color .3s ease}
+  .seg-label{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.06em}
+  .segbar{position:relative; height:18px; background:rgba(255,255,255,.08);
+    border-radius:9px; overflow:hidden}
+  .segfill{position:absolute; left:0; top:0; bottom:0; width:0%;
+    background:var(--accent); border-radius:9px; transition:width .1s linear}
 
-  .sub{text-align:center; color:var(--dim); font-size:13px; min-height:18px; margin-bottom:14px}
-  .sub b{color:var(--accent2); font-weight:600}
-  .bar{position:relative; height:10px; background:var(--bg); border-radius:5px;
-    margin:10px 0 22px; overflow:visible}
+  /* Total progress — secondary, with chime ticks */
+  .total{margin-top:8px}
+  .bar{position:relative; height:8px; background:var(--bg); border-radius:4px;
+    margin:16px 0 9px; overflow:visible}
   .fill{position:absolute; left:0; top:0; bottom:0; background:var(--accent);
-    border-radius:5px; width:0%}
-  .tick{position:absolute; top:-4px; width:2px; height:18px; background:var(--dim);
+    border-radius:4px; width:0%; opacity:.55}
+  .tick{position:absolute; top:-5px; width:2px; height:18px; background:var(--dim);
     border-radius:1px; transform:translateX(-1px)}
   .tick.hit{background:var(--accent2)}
+  .sub{text-align:center; color:var(--dim); font-size:13px; min-height:18px; margin-bottom:2px}
+  .sub b{color:var(--accent2); font-weight:600}
   .btns{display:flex; gap:10px; margin-top:18px}
   .btns button{flex:1; border:none; border-radius:10px; padding:14px; font-size:16px;
     font-weight:600; cursor:pointer}
@@ -102,8 +84,11 @@
   #resetBtn{background:var(--bg); color:var(--dim); border:1px solid var(--line)!important; display:none}
 
   /* Done state */
-  .done .timer-ring-progress{stroke:var(--accent)}
-  .done .timer-display{color:var(--accent)}
+  .done .seg-time{color:var(--accent)}
+
+  /* Keyboard focus visibility */
+  #muteBtn:focus-visible, .modes button:focus-visible, .btns button:focus-visible,
+  .saverow button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
 
   .hidden{display:none}
   #runview{display:none}
@@ -111,9 +96,7 @@
   /* Mobile responsive */
   @media (max-width:500px){
     .card{padding:20px}
-    .timer-ring-svg{width:160px; height:160px}
-    .timer-ring-center{width:140px; height:140px}
-    .timer-display{font-size:36px}
+    .seg-time{font-size:24px}
     h1{font-size:14px}
   }
 </style>
@@ -168,18 +151,17 @@
   </div>
 
   <div id="runview">
-    <div class="timer-ring-container">
-      <svg class="timer-ring-svg" viewBox="0 0 180 180">
-        <circle class="timer-ring-bg" cx="90" cy="90" r="90"></circle>
-        <circle class="timer-ring-progress" id="timerRing" cx="90" cy="90" r="90"></circle>
-      </svg>
-      <div class="timer-ring-center">
-        <div class="timer-display" id="clock">25:00</div>
-        <div class="timer-display-label">to next chime</div>
+    <div class="seg">
+      <div class="seg-head">
+        <span class="seg-time" id="clock">25:00</span>
+        <span class="seg-label" id="clockLabel">to next chime</span>
       </div>
+      <div class="segbar"><div class="segfill" id="segfill"></div></div>
     </div>
-    <div class="sub" id="nextinfo"></div>
-    <div class="bar"><div class="fill" id="fill"></div><div id="ticks"></div></div>
+    <div class="total" id="totalBox">
+      <div class="bar"><div class="fill" id="fill"></div><div id="ticks"></div></div>
+      <div class="sub" id="nextinfo"></div>
+    </div>
   </div>
 
   <div class="btns">
@@ -353,21 +335,16 @@ function tick(){
     hit++;
   }
 
-  // Ring = progress through the CURRENT segment (this interval, between chimes)
+  // Segment bar = progress through the CURRENT interval (between chimes)
   let segStart = 0;
   for (const t of times){ if (t <= el) segStart = t; else break; }
   const next = times.find(t => t > el);
   const segEnd = next !== undefined ? next : D;
   const segLen = segEnd - segStart;
   const segProg = segLen > 0 ? Math.min(1, (el - segStart) / segLen) : 1;
+  $('segfill').style.width = (segProg * 100) + '%';
 
-  const ring = $('timerRing');
-  if (ring){
-    const circumference = 565.48;  // 2π * 90
-    document.documentElement.style.setProperty('--timer-offset', circumference * (1 - segProg));
-  }
-
-  // Center = time until the next chime
+  // Countdown = time until the next chime
   $('clock').textContent = fmt(segEnd - el);
 
   if (mode === 'inf'){
@@ -375,7 +352,7 @@ function tick(){
     return;                               // infinite mode never finishes
   }
 
-  // Bar = progress through the TOTAL duration
+  // Total bar = progress through the whole task
   $('fill').style.width = Math.min(100, el/D*100) + '%';
   if (el >= D){
     finish();
@@ -390,7 +367,8 @@ async function start(){
   await ensureAudio();
   hit = 0; pausedElapsed = 0; startTs = Date.now(); running = true;
   drawTicks();
-  document.querySelector('.bar').style.display = (mode === 'inf') ? 'none' : 'block';
+  $('clockLabel').textContent = 'to next chime';
+  $('totalBox').style.display = (mode === 'inf') ? 'none' : 'block';   // no total in infinite mode
   scheduleChimes(0);                    // pre-schedule all chimes on the audio clock
   chime();                              // start-of-task chime
   $('setup').classList.add('hidden');
@@ -419,6 +397,8 @@ function pauseResume(){
 function finish(){
   clearInterval(timer); running = false;
   $('clock').textContent = '0:00';
+  $('clockLabel').textContent = 'complete';
+  $('segfill').style.width = '100%';
   $('fill').style.width = '100%';
   $('nextinfo').innerHTML = '<b>Done!</b>';
   $('pauseBtn').style.display = 'none';
